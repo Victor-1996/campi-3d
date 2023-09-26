@@ -11,38 +11,38 @@ const main = async () => {
 
   const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
   const controls = new OrbitControls(camera, renderer.domElement);
-  camera.position.set(0, 0, 100);
+  camera.position.set(0, 0, 10);
   camera.lookAt(0, 0, 0);
   controls.update();
 
   const scene = new THREE.Scene();
 
-  const gridHelper = new THREE.GridHelper(100, 10);
+  const gridHelper = new THREE.GridHelper(10, 10);
   scene.add(gridHelper);
+
+  const getSize = event => {
+    if (!event.magnitudos) return 0;
+    const m = event.magnitudos[0].value;
+    return Math.cbrt((3 * Math.pow(10, m)) / (4 * Math.PI)) / 100;
+  };
 
   const getColor = event => {
     if (!event.magnitudos) return 0x808080;
-    const m = event.magnitudos[0].value;
-    if (m >= 3) {
-      return 0xff0000;
-    } else if (m >= 2) {
-      return 0x00ff00;
-    } else if (m >= 1) {
-      return 0x0000ff;
-    } else {
-      return 0x808080;
-    }
+    let m = event.magnitudos[0].value;
+    m = m > 4 ? 4 : m;
+    m = m < 0 ? 0 : m;
+    m = m / 4;
+    return new THREE.Color(m, 0, 1 - m);
   };
 
   for (let i = 0; i < data.length; i++) {
     const event = data[i];
     if (!event.location) continue;
-    const size = event.magnitudos ? event.magnitudos[0].value : undefined;
-    const geometry = new THREE.SphereGeometry(size/10 || 0.1, 32, 16);
+    const geometry = new THREE.SphereGeometry(getSize(event), 32, 16);
     const color = getColor(event);
     const material = new THREE.MeshBasicMaterial({ color });
     const sphere = new THREE.Mesh(geometry, material);
-    sphere.position.set(850 * (event.location.longitude - 14.1386), -10 * event.location.depth, 1110 * (event.location.latitude - 40.8249));
+    sphere.position.set(85 * (event.location.longitude - 14.1386), -event.location.depth, 111 * (event.location.latitude - 40.8249));
     scene.add(sphere);
   }
 
