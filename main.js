@@ -16,7 +16,7 @@ const getMinMax = arr => {
 };
 
 const main = async () => {
-  const data = await fetch('data.json').then(res => res.json());
+  const data = await fetch('https://terremoti.ov.ingv.it/gossip/flegrei/2023/events.json').then(res => res.json());
   const { min: min_epoch, max: max_epoch } = getMinMax(data.map(x => x.epoch));
 
   const renderer = new THREE.WebGLRenderer();
