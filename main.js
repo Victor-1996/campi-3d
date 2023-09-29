@@ -7,7 +7,7 @@ const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerH
 const controls = new OrbitControls(camera, renderer.domElement);
 const scene = new THREE.Scene();
 
-let data = [];
+const data = [];
 let spheres = [];
 
 const getRadius = event => {
@@ -25,31 +25,12 @@ const getColor = event => {
   return new THREE.Color(m, 0, 1 - m);
 };
 
-const setData = async (year) => {
-  data = [];
-  data = await fetch(`data/${year}.json`).then(res => res.json());
-};
-
 const render_scene = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
   camera.position.set(0, 0, 10);
   camera.lookAt(0, 0, 0);
   controls.update();
-  const c = 1/32;
-  const grid_c = new THREE.Color(c, c, c);
-  const grid_2 = new THREE.GridHelper(10, 10, grid_c, grid_c);
-  const grid_3 = new THREE.GridHelper(10, 10, grid_c, grid_c);
-  const grid_4 = new THREE.GridHelper(10, 10, grid_c, grid_c);
-  const grid_5 = new THREE.GridHelper(10, 10, grid_c, grid_c);
-  grid_2.rotateX(Math.PI / 2);
-  grid_2.position.set(0, -5, -5);
-  grid_3.rotateZ(Math.PI / 2);
-  grid_3.position.set(-5, -5, 0);
-  grid_4.rotateX(Math.PI / 2);
-  grid_4.position.set(0, -5, 5);
-  grid_5.rotateZ(Math.PI / 2);
-  grid_5.position.set(5, -5, 0);
   const geometry = new THREE.PlaneGeometry(10, 10);
   const material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
   material.transparent = true;
@@ -62,26 +43,60 @@ const render_scene = () => {
   });
   special_material.transparent = true;
   special_material.opacity = 1 / 4;
-  const plane_1 = new THREE.Mesh(geometry, special_material);
-  const plane_2 = new THREE.Mesh(geometry, material);
-  const plane_3 = new THREE.Mesh(geometry, material);
-  const plane_4 = new THREE.Mesh(geometry, material);
-  const plane_5 = new THREE.Mesh(geometry, material);
-  plane_1.rotateX(3 * Math.PI / 2);
-  plane_1.rotateZ(Math.PI);
-  plane_2.position.set(0, -5, -5);
-  plane_3.rotateY(Math.PI / 2);
-  plane_3.position.set(-5, -5, 0);
-  plane_4.position.set(0, -5, 5);
-  plane_5.rotateY(Math.PI / 2);
-  plane_5.position.set(5, -5, 0);
-  scene.add(plane_1, plane_2, plane_3, plane_4, plane_5, grid_2, grid_3, grid_4, grid_5);
+  const special_plane = new THREE.Mesh(geometry, special_material);
+  special_plane.rotateX(3 * Math.PI / 2);
+  special_plane.rotateZ(Math.PI);
+  const c = 1/32;
+  const grid_color = new THREE.Color(c, c, c);
+  const grids = [];
+  for (let i = 0; i < 4; i++) {
+    const grid = new THREE.GridHelper(10, 10, grid_color, grid_color);
+    if (i % 2 === 0) {
+      grid.rotateX(Math.PI / 2);
+    } else {
+      grid.rotateZ(Math.PI / 2);
+    }
+    grids.push(grid);
+  }
+  const planes = [];
+  for (let i = 0; i < 4; i++) {
+    const plane = new THREE.Mesh(geometry, material);
+    if (i % 2 === 1) {
+      plane.rotateY(Math.PI / 2);
+    }
+    planes.push(plane);
+  }
+  const positions = [[0, -5, -5], [-5, -5, 0], [0, -5, 5], [5, -5, 0]];
+  for (let i = 0; i < positions.length; i++) {
+    grids[i].position.set(...positions[i]);
+    planes[i].position.set(...positions[i]);
+  }
+  scene.add(special_plane, ...grids, ...planes);
+};
+
+const start_date_input = document.getElementById('start-date');
+const end_date_input = document.getElementById('end-date');
+
+const checkDate = event => {
+  const { epoch, date } = event;
+  if (!epoch || !date) return false;
+  const start_epoch = new Date(`${start_date_input.value}T00:00:00.000Z`).getTime() / 1000;
+  const end_epoch = new Date(`${end_date_input.value}T00:00:00.000Z`).getTime() / 1000;
+  if (date.startsWith(start_date_input.value)) {
+    return true;
+  } else if (date.startsWith(end_date_input.value)) {
+    return true;
+  } else if (start_epoch <= epoch && epoch <= end_epoch) {
+    return true;
+  } else {
+    return false;
+  }
 };
 
 const update_spheres = () => {
   for (let i = 0; i < data.length; i++) {
     const event = data[i];
-    if (!event.epoch) continue;
+    if (!checkDate(event)) continue;
     if (!event.location) continue;
     const geometry = new THREE.SphereGeometry(getRadius(event), 32, 16);
     const material = new THREE.MeshBasicMaterial({ color: getColor(event) });
@@ -95,7 +110,7 @@ const update_spheres = () => {
   }
 };
 
-const remove_spheres = () => {
+document.getElementById('update').addEventListener('click', e => {
   for (let i = 0; i < spheres.length; i++) {
     scene.remove(spheres[i]);
     spheres[i].geometry.dispose();
@@ -103,18 +118,18 @@ const remove_spheres = () => {
     spheres[i] = undefined;
   }
   spheres = [];
-};
-
-document.getElementById('year-select').addEventListener('change', async (e) => {
-  remove_spheres();
-  await setData(e.target.value);
   update_spheres();
 });
 
 const main = async () => {
   render_scene();
-  await setData('2023');
+
+  for (let i = 2005; i <= 2023; i++) {
+    data.push(...await fetch(`data/${i}.json`).then(res => res.json()));
+  }
+
   update_spheres();
+
   renderer.render(scene, camera);
   
   const animate = () => {
