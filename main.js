@@ -11,13 +11,13 @@ const data = [];
 let spheres = [];
 
 const getRadius = event => {
-  if (!event.magnitudos) return 0;
+  if (!event.magnitudos) return 1 / 150;
   const m = event.magnitudos[0].value;
   return Math.cbrt((3 * Math.pow(10, m)) / (4 * Math.PI)) / 100;
 };
 
 const getColor = event => {
-  if (!event.magnitudos) return 0x0000ff;
+  if (!event.magnitudos) return new THREE.Color(1/10, 1/10, 1/10);
   let m = event.magnitudos[0].value;
   m = m > 4 ? 4 : m;
   m = m < 0 ? 0 : m;
@@ -94,6 +94,20 @@ const checkDate = event => {
 };
 
 const update_spheres = () => {
+  let histogram = {};
+  for (let i = 0; i < data.length; i++) {
+    const event = data[i];
+    let key;
+    if (!event.magnitudos) {
+      key = 'undefined';
+    } else {
+      const magnitude = event.magnitudos[0].value;
+      key = `${magnitude}`;
+    }
+    histogram[key] = typeof histogram[key] !== 'number' ? 1 : histogram[key] + 1;
+  }
+  console.log(histogram);
+
   for (let i = 0; i < data.length; i++) {
     const event = data[i];
     if (!checkDate(event)) continue;
