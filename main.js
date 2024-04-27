@@ -138,7 +138,7 @@ document.getElementById('update').addEventListener('click', e => {
 const main = async () => {
   render_scene();
 
-  for (let i = 2005; i <= 2023; i++) {
+  for (let i = 2005; i <= 2024; i++) {
     data.push(...await fetch(`data/${i}.json`).then(res => res.json()));
   }
 
